@@ -1,0 +1,45 @@
+# Superfolder TUI Development Task List
+
+- [x] Project Initialization
+    - [x] Create Rust project `superfolder-tui` <!-- id: 0 -->
+    - [x] Add dependencies (`ratatui`, `crossterm`, `clap`, `walkdir`, `chrono`) <!-- id: 1 -->
+- [x] Core Logic & Data Structures
+    - [x] Define `FileSystemEntry` struct (Path, Metadata, Stats, Children/State) <!-- id: 2 -->
+    - [x] Implement `Stats` aggregation (MinDate, MaxDate, Count) <!-- id: 3 -->
+    - [x] Implement DFS Scanner <!-- id: 4 -->
+        - [x] Handle standard files/directories
+        - [x] Handle ".git", "node_modules", etc. as atomic Superfolders
+        - [x] Handle `.superfolder` marker
+        - [x] Handle permission errors (mark as inaccessible)
+- [x] State Management (The "Frontier")
+    - [x] Implement logical "Tree Frontier" view generation <!-- id: 5 -->
+    - [x] Implement Collapse (Left Arrow) logic <!-- id: 6 -->
+    - [x] Implement Expand (Right Arrow) logic <!-- id: 7 -->
+- [x] Persistence
+    - [x] Implement `.superfolder` file creation/deletion/move logic <!-- id: 8 -->
+- [x] TUI Implementation
+    - [x] Setup Terminal (Crossterm backend) <!-- id: 9 -->
+    - [x] Implement Main Loop & Event Handling <!-- id: 10 -->
+    - [x] Render Table with required columns <!-- id: 11 -->
+    - [x] Connect input events to State actions <!-- id: 12 -->
+- [x] Verification
+    - [x] Create test directory structure <!-- id: 13 -->
+    - [x] Manual testing of workflow (Unit tests passed) <!-- id: 14 -->
+- [x] Optimization <!-- id: 15 -->
+    - [x] Implement `find_node_mut` in App <!-- id: 16 -->
+    - [x] Optimize `collapse_current` (avoid full refresh) <!-- id: 17 -->
+    - [x] Optimize `expand_current` (partial scan only) <!-- id: 18 -->
+- [x] Release Preparation <!-- id: 19 -->
+    - [x] Code Cleanup & Documentation (Rustdoc, remove stale comments) <!-- id: 20 -->
+    - [x] Create `TODO.md` from extracted comments <!-- id: 21 -->
+    - [x] Create `README.md` (English, friendly, defined terminology) <!-- id: 22 -->
+    - [x] Release Preparation <!-- id: 19 -->
+    - [x] Code Cleanup & Documentation (Rustdoc, remove stale comments) <!-- id: 20 -->
+    - [x] Create `TODO.md` from extracted comments <!-- id: 21 -->
+    - [x] Create `README.md` (English, friendly, defined terminology) <!-- id: 22 -->
+    - [x] Setup GitHub Actions CI (`fmt`, `build`, `test`) <!-- id: 23 -->
+- [x] Refactoring & Polishing <!-- id: 24 -->
+    - [x] Rename project to `SuperFolders` (Cargo.toml, Docs, Dir) <!-- id: 25 -->
+    - [x] Update Terminology (System Folder vs Atomic Superfolder) <!-- id: 26 -->
+    - [x] Refactor Tests to use `tempfile` (CI fix) <!-- id: 27 -->
+    - [x] Update `TODO.md` with new features <!-- id: 28 -->
