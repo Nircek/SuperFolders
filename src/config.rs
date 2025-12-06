@@ -1,7 +1,10 @@
-use std::path::Path;
+use serde::{Deserialize, Serialize};
+use std::env;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 /// Configuration for SuperFolders application
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config {
     /// List of system folder names that identify atomic superfolders
     pub system_folders: Vec<String>,
@@ -29,7 +32,56 @@ impl Default for Config {
 impl Config {
     /// Create a new configuration with default system folders
     pub fn new() -> Self {
-        Self::default()
+        Self::load().unwrap_or_default()
+    }
+
+    /// Load configuration from file or environment variables
+    pub fn load() -> Option<Self> {
+        // First, check for environment variable
+        if let Ok(env_folders) = env::var("SUPERFOLDERS_SYSTEM_FOLDERS") {
+            let folders: Vec<String> = env_folders
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if !folders.is_empty() {
+                return Some(Config {
+                    system_folders: folders,
+                });
+            }
+        }
+
+        // Then, check for config file next to binary or in home directory
+        let config_paths = vec![Self::get_binary_dir_config(), Self::get_home_dir_config()];
+
+        for path in config_paths.into_iter().flatten() {
+            if path.exists()
+                && let Ok(content) = fs::read_to_string(&path)
+                && let Ok(config) = toml::from_str::<Config>(&content)
+            {
+                return Some(config);
+            }
+        }
+
+        None
+    }
+
+    fn get_binary_dir_config() -> Option<PathBuf> {
+        let exe_path = env::current_exe().ok()?;
+        let exe_dir = exe_path.parent()?;
+        Some(exe_dir.join("superfolders.toml"))
+    }
+
+    fn get_home_dir_config() -> Option<PathBuf> {
+        let home = env::var("HOME").ok()?;
+        Some(PathBuf::from(home).join(".superfolders.toml"))
+    }
+
+    /// Save the current configuration to a file
+    pub fn save(&self, path: &Path) -> std::io::Result<()> {
+        let content = toml::to_string_pretty(self)
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
+        fs::write(path, content)
     }
 
     /// Check if a directory contains any system folders

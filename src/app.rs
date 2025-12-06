@@ -23,6 +23,8 @@ pub struct App {
     pub config: Config,
     /// Whether help overlay is shown
     pub show_help: bool,
+    /// Status bar message with timestamp
+    pub status_message: Option<(String, std::time::Instant)>,
 }
 
 /// A single item in the flattened view list
@@ -40,6 +42,8 @@ pub struct ViewItem {
     pub count_str: String,
     /// Whether this item is a Superfolder (User or Atomic)
     pub is_superfolder: bool,
+    /// Whether this superfolder is atomic (system folder wrapper)
+    pub is_atomic: bool,
     /// Selection state
     #[allow(dead_code)] // (reserved for future use)
     pub is_selected: bool,
@@ -63,6 +67,7 @@ impl App {
             table_state: TableState::default(),
             config,
             show_help: false,
+            status_message: None,
         };
         app.update_view();
         app
@@ -118,7 +123,10 @@ impl App {
             _ => entry.stats.count.to_string(),
         };
 
-        let is_superfolder = matches!(entry.kind, EntryKind::Superfolder { .. });
+        let (is_superfolder, is_atomic) = match entry.kind {
+            EntryKind::Superfolder { is_atomic } => (true, is_atomic),
+            _ => (false, false),
+        };
 
         list.push(ViewItem {
             path: relative_path,
@@ -127,6 +135,7 @@ impl App {
             max_date,
             count_str,
             is_superfolder,
+            is_atomic,
             is_selected: false,
         });
     }
@@ -179,6 +188,7 @@ impl App {
         let marker = target_path.join(".superfolder");
         if !marker.exists() {
             fs::File::create(&marker)?;
+            self.set_status(format!("Created: {}", marker.display()));
         }
 
         // 2. In-Memory Update
@@ -275,53 +285,41 @@ impl App {
         self.show_help = !self.show_help;
     }
 
-    /// Export the current view to CSV file
-    pub fn export_to_csv(&self) -> io::Result<()> {
-        use std::io::Write;
+    /// Set a status message that will be shown for a few seconds
+    pub fn set_status(&mut self, message: String) {
+        self.status_message = Some((message, std::time::Instant::now()));
+    }
 
+    /// Get the current status message if it's still valid
+    pub fn get_status(&self) -> Option<&str> {
+        if let Some((msg, instant)) = &self.status_message {
+            if instant.elapsed().as_secs() < 3 {
+                return Some(msg);
+            }
+        }
+        None
+    }
+
+    /// Export the current view to CSV file
+    pub fn export_to_csv(&mut self) -> io::Result<()> {
         let filename = format!(
             "superfolders_export_{}.csv",
             chrono::Local::now().format("%Y%m%d_%H%M%S")
         );
 
-        let mut file = fs::File::create(&filename)?;
+        let file = fs::File::create(&filename)?;
+        let mut writer = csv::Writer::from_writer(file);
 
         // Write header
-        writeln!(file, "Min Date,Max Date,Count,Path")?;
+        writer.write_record(&["Min Date", "Max Date", "Count", "Path"])?;
 
-        // Write data rows with proper CSV escaping
+        // Write data rows
         for item in &self.view_items {
-            writeln!(
-                file,
-                "\"{}\",\"{}\",\"{}\",\"{}\"",
-                escape_csv(&item.min_date),
-                escape_csv(&item.max_date),
-                escape_csv(&item.count_str),
-                escape_csv(&item.path)
-            )?;
+            writer.write_record([&item.min_date, &item.max_date, &item.count_str, &item.path])?;
         }
 
+        writer.flush()?;
+        self.set_status(format!("Exported to: {}", filename));
         Ok(())
-    }
-}
-
-/// Escape a string for CSV by doubling internal quotes
-fn escape_csv(s: &str) -> String {
-    s.replace('"', "\"\"")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_csv_escaping() {
-        assert_eq!(escape_csv("normal text"), "normal text");
-        assert_eq!(
-            escape_csv("text with \"quotes\""),
-            "text with \"\"quotes\"\""
-        );
-        assert_eq!(escape_csv("\"quoted\""), "\"\"quoted\"\"");
-        assert_eq!(escape_csv(""), "");
     }
 }

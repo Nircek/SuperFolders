@@ -54,10 +54,20 @@ fn main() -> Result<()> {
     let start_time = Instant::now();
     while !scan_handle.is_finished() {
         let count = counter.load(Ordering::Relaxed);
-        let elapsed = start_time.elapsed().as_secs();
+        let elapsed = start_time.elapsed();
+        let elapsed_secs = elapsed.as_secs_f64();
+        let items_per_sec = if elapsed_secs > 0.0 {
+            count as f64 / elapsed_secs
+        } else {
+            0.0
+        };
+
+        let time_str = format_duration(elapsed);
         print!(
-            "\rScanning directory tree... {} items found ({} seconds)",
-            count, elapsed
+            "\rScanning directory tree... {:.3}k items ({}, {:.2}k items/s)     ",
+            count as f64 / 1000.0,
+            time_str,
+            items_per_sec / 1000.0
         );
         io::stdout().flush()?;
         thread::sleep(Duration::from_millis(100));
@@ -67,9 +77,22 @@ fn main() -> Result<()> {
         .join()
         .map_err(|_| anyhow::anyhow!("Scan thread panicked"))?;
     let final_count = counter.load(Ordering::Relaxed);
+    let total_elapsed = start_time.elapsed();
+    let total_secs = total_elapsed.as_secs_f64();
+    let final_rate = if total_secs > 0.0 {
+        final_count as f64 / total_secs
+    } else {
+        0.0
+    };
+
+    use crossterm::cursor::MoveToColumn;
+    use crossterm::terminal::{Clear, ClearType};
+    execute!(io::stdout(), MoveToColumn(0), Clear(ClearType::CurrentLine))?;
     println!(
-        "\rScan complete! Found {} items.                    ",
-        final_count
+        "Scan complete! Found {:.3}k items in {} ({:.2}k items/s)",
+        final_count as f64 / 1000.0,
+        format_duration(total_elapsed),
+        final_rate / 1000.0
     );
     thread::sleep(Duration::from_millis(500)); // Brief pause to see the message
 
@@ -96,6 +119,22 @@ fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn format_duration(duration: Duration) -> String {
+    let total_secs = duration.as_secs();
+    if total_secs < 60 {
+        format!("{}s", total_secs)
+    } else if total_secs < 3600 {
+        let minutes = total_secs / 60;
+        let seconds = total_secs % 60;
+        format!("{}m {}s", minutes, seconds)
+    } else {
+        let hours = total_secs / 3600;
+        let minutes = (total_secs % 3600) / 60;
+        let seconds = total_secs % 60;
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    }
 }
 
 fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App) -> io::Result<()> {

@@ -9,13 +9,15 @@ use ratatui::{
 /// Renders the TUI interface
 pub fn draw(f: &mut Frame, app: &mut App) {
     if app.show_help {
-        draw_help_overlay(f);
+        draw_help_overlay(f, app);
         return;
     }
 
-    let chunks = Layout::default()
-        .constraints([Constraint::Percentage(100)])
-        .split(f.area());
+    let chunks = Layout::vertical([
+        Constraint::Min(3),    // Main table
+        Constraint::Length(1), // Status bar
+    ])
+    .split(f.area());
 
     let header_cells = ["Min Date", "Max Date", "Count", "Path"]
         .iter()
@@ -37,7 +39,11 @@ pub fn draw(f: &mut Frame, app: &mut App) {
         };
 
         let path_display = if item.is_superfolder {
-            format!("📦 {} [SF]", item.path)
+            if item.is_atomic {
+                format!("📦 {}", item.path)
+            } else {
+                format!("📦 {} [SF]", item.path)
+            }
         } else {
             format!("  {}", item.path)
         };
@@ -67,29 +73,37 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     // Use the persistent TableState from App for proper scrolling
     f.render_stateful_widget(t, chunks[0], &mut app.table_state);
+
+    // Draw status bar
+    let status_text = if let Some(msg) = app.get_status() {
+        msg.to_string()
+    } else {
+        format!("Total entries: {}", app.view_items.len())
+    };
+    let status_bar = Paragraph::new(status_text).style(Style::default().fg(Color::Gray));
+    f.render_widget(status_bar, chunks[1]);
 }
 
-fn draw_help_overlay(f: &mut Frame) {
-    let area = centered_rect(80, 80, f.area());
+fn draw_help_overlay(f: &mut Frame, app: &App) {
+    let area = centered_rect(85, 85, f.area());
 
-    let help_text = r#"
-╔═══════════════════════════════════════════════════════════╗
+    // Build system folders list dynamically from config
+    let system_folders_list = app.config.system_folders.join(", ");
+
+    let help_text = format!(
+        r#"╔═══════════════════════════════════════════════════════════╗
 ║                   SuperFolders - Help                     ║
 ╚═══════════════════════════════════════════════════════════╝
 
 KEY CONCEPTS:
 
-• Superfolder: A folder that aggregates all its content as a single 
-  unit, showing only statistics (file count, dates).
-  
-• Atomic Superfolder: Automatically detected project folders 
-  containing system folders (.git, node_modules, etc). Marked with 📦
-  
-• User Superfolder: Any folder you manually collapse. Also marked 
-  with 📦 and [SF]
-  
-• Tree Frontier: The current flat view showing the highest level of 
-  detail you've chosen to see.
+• Superfolder: A folder that aggregates all its content as a single unit, showing only statistics (file count, dates).
+
+• Atomic Superfolder: Automatically detected project folders containing system folders. Marked with 📦
+
+• User Superfolder: Any folder you manually collapse. Marked with 📦 [SF]
+
+• Tree Frontier: The current flat view showing the highest level of detail you've chosen to see.
 
 CONTROLS:
 
@@ -101,12 +115,14 @@ CONTROLS:
   Q or Esc   Quit the application
 
 SYSTEM FOLDERS (Atomic Superfolder Detection):
-  Default system folders include: .git, node_modules, .venv, venv, 
-  __pycache__, target, build, dist, .idea, .vscode
-  (Configurable via Config struct in src/config.rs)
+  {}
 
-Press H, ? or Esc to close this help.
-"#;
+CONFIGURATION:
+  Set SUPERFOLDERS_SYSTEM_FOLDERS environment variable (comma-separated) or create superfolders.toml next to binary or ~/.superfolders.toml in home directory.
+
+Press H, ? or Esc to close this help."#,
+        system_folders_list
+    );
 
     let paragraph = Paragraph::new(help_text)
         .block(
@@ -116,8 +132,9 @@ Press H, ? or Esc to close this help.
                 .title(" Help ")
                 .title_alignment(Alignment::Center),
         )
-        .style(Style::default().fg(Color::White))
-        .wrap(Wrap { trim: false });
+        .style(Style::default().bg(Color::Black).fg(Color::White))
+        .wrap(Wrap { trim: true })
+        .scroll((0, 0));
 
     f.render_widget(Clear, area);
     f.render_widget(paragraph, area);
