@@ -1,9 +1,13 @@
 use anyhow::Result;
 use clap::Parser;
 use crossterm::{
+    cursor::MoveToColumn,
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{
+        Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
+        enable_raw_mode,
+    },
 };
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::io::{self, Write};
@@ -85,8 +89,6 @@ fn main() -> Result<()> {
         0.0
     };
 
-    use crossterm::cursor::MoveToColumn;
-    use crossterm::terminal::{Clear, ClearType};
     execute!(io::stdout(), MoveToColumn(0), Clear(ClearType::CurrentLine))?;
     println!(
         "Scan complete! Found {:.3}k items in {} ({:.2}k items/s)",

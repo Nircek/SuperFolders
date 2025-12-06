@@ -292,10 +292,10 @@ impl App {
 
     /// Get the current status message if it's still valid
     pub fn get_status(&self) -> Option<&str> {
-        if let Some((msg, instant)) = &self.status_message {
-            if instant.elapsed().as_secs() < 3 {
-                return Some(msg);
-            }
+        if let Some((msg, instant)) = &self.status_message
+            && instant.elapsed().as_secs() < 3
+        {
+            return Some(msg);
         }
         None
     }
@@ -311,7 +311,7 @@ impl App {
         let mut writer = csv::Writer::from_writer(file);
 
         // Write header
-        writer.write_record(&["Min Date", "Max Date", "Count", "Path"])?;
+        writer.write_record(["Min Date", "Max Date", "Count", "Path"])?;
 
         // Write data rows
         for item in &self.view_items {

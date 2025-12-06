@@ -55,10 +55,16 @@ impl Config {
         let config_paths = vec![Self::get_binary_dir_config(), Self::get_home_dir_config()];
 
         for path in config_paths.into_iter().flatten() {
-            if path.exists()
-                && let Ok(content) = fs::read_to_string(&path)
-                && let Ok(config) = toml::from_str::<Config>(&content)
-            {
+            if !path.exists() {
+                continue;
+            }
+
+            let content = match fs::read_to_string(&path) {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
+
+            if let Ok(config) = toml::from_str::<Config>(&content) {
                 return Some(config);
             }
         }
@@ -73,8 +79,8 @@ impl Config {
     }
 
     fn get_home_dir_config() -> Option<PathBuf> {
-        let home = env::var("HOME").ok()?;
-        Some(PathBuf::from(home).join(".superfolders.toml"))
+        let home = dirs::home_dir()?;
+        Some(home.join(".superfolders.toml"))
     }
 
     /// Save the current configuration to a file
