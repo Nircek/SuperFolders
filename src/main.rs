@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 mod app;
+mod config;
 mod scanner;
 mod ui;
 
@@ -74,6 +75,10 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
                     KeyCode::Up => app.previous(),
                     KeyCode::Left => app.collapse_current()?,
                     KeyCode::Right => app.expand_current()?,
+                    KeyCode::Char('e') | KeyCode::Char('E') => app.export_to_csv()?,
+                    KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Char('?') => {
+                        app.toggle_help()
+                    }
                     _ => {}
                 }
             }

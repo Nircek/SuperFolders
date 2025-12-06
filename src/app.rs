@@ -1,4 +1,6 @@
+use crate::config::Config;
 use crate::scanner::{EntryKind, FsEntry, scan_directory};
+use ratatui::widgets::TableState;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
@@ -13,6 +15,12 @@ pub struct App {
     pub view_items: Vec<ViewItem>,
     /// Index of the currently selected item in `view_items`
     pub selected_index: usize,
+    /// Table state for proper scrolling
+    pub table_state: TableState,
+    /// Application configuration
+    pub config: Config,
+    /// Whether help overlay is shown
+    pub show_help: bool,
 }
 
 /// A single item in the flattened view list
@@ -38,12 +46,16 @@ pub struct ViewItem {
 impl App {
     /// Initialize the application with the given root path
     pub fn new(root_path: PathBuf) -> Self {
-        let root = scan_directory(&root_path);
+        let config = Config::new();
+        let root = scan_directory(&root_path, &config);
         let mut app = Self {
             root_path: root_path.clone(),
             root,
             view_items: vec![],
             selected_index: 0,
+            table_state: TableState::default(),
+            config,
+            show_help: false,
         };
         app.update_view();
         app
@@ -51,7 +63,7 @@ impl App {
 
     /// Full refresh of the file system scan
     pub fn refresh(&mut self) {
-        self.root = scan_directory(&self.root_path);
+        self.root = scan_directory(&self.root_path, &self.config);
         self.update_view();
         if self.selected_index >= self.view_items.len() && !self.view_items.is_empty() {
             self.selected_index = self.view_items.len() - 1;
@@ -117,11 +129,13 @@ impl App {
         let mut list = Vec::new();
         Self::flatten_tree(&self.root, &self.root_path, &mut list);
         self.view_items = list;
+        self.table_state.select(Some(self.selected_index));
     }
 
     pub fn next(&mut self) {
         if !self.view_items.is_empty() {
             self.selected_index = (self.selected_index + 1) % self.view_items.len();
+            self.table_state.select(Some(self.selected_index));
         }
     }
 
@@ -132,6 +146,7 @@ impl App {
             } else {
                 self.selected_index = self.view_items.len() - 1;
             }
+            self.table_state.select(Some(self.selected_index));
         }
     }
 
@@ -216,7 +231,7 @@ impl App {
             node.kind = EntryKind::Directory;
 
             if node.children.is_empty() {
-                let fresh_node = scan_directory(&node.path);
+                let fresh_node = scan_directory(&node.path, &self.config);
                 node.children = fresh_node.children;
                 node.stats = fresh_node.stats;
             }
@@ -247,4 +262,38 @@ impl App {
         }
         None
     }
+
+    /// Toggle help overlay
+    pub fn toggle_help(&mut self) {
+        self.show_help = !self.show_help;
+    }
+
+    /// Export the current view to CSV file
+    pub fn export_to_csv(&self) -> io::Result<()> {
+        use std::io::Write;
+
+        let filename = format!(
+            "superfolders_export_{}.csv",
+            chrono::Local::now().format("%Y%m%d_%H%M%S")
+        );
+
+        let mut file = fs::File::create(&filename)?;
+
+        // Write header
+        writeln!(file, "Min Date,Max Date,Count,Path")?;
+
+        // Write data rows
+        for item in &self.view_items {
+            writeln!(
+                file,
+                "\"{}\",\"{}\",\"{}\",\"{}\"",
+                item.min_date, item.max_date, item.count_str, item.path
+            )?;
+        }
+
+        Ok(())
+    }
 }
+
+// Import chrono for timestamp in export
+use chrono;

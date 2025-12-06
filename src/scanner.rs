@@ -1,3 +1,4 @@
+use crate::config::Config;
 use chrono::{DateTime, Local};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -130,8 +131,8 @@ impl FsEntry {
 
 /// Scans a directory recursively to build the `FsEntry` tree.
 ///
-/// Respects `.superfolder` markers and atomic folders like `.git`.
-pub fn scan_directory(path: &Path) -> FsEntry {
+/// Respects `.superfolder` markers and atomic folders configured in Config.
+pub fn scan_directory(path: &Path, config: &Config) -> FsEntry {
     let name = path
         .file_name()
         .unwrap_or_default()
@@ -158,10 +159,8 @@ pub fn scan_directory(path: &Path) -> FsEntry {
     // Check for .superfolder marker
     let is_user_superfolder = path.join(".superfolder").exists();
 
-    // Check for Atomic folders (if THIS folder contains .git, node_modules etc)
-    let is_atomic = [".git", "node_modules", ".venv", "zvenv"]
-        .iter()
-        .any(|&s| path.join(s).exists());
+    // Check for Atomic folders using config
+    let is_atomic = config.contains_system_folder(path);
 
     if is_user_superfolder || is_atomic {
         let (deep_stats, _deep_children) = scan_recursive_for_stats(path);
@@ -193,7 +192,7 @@ pub fn scan_directory(path: &Path) -> FsEntry {
         }
 
         let child = if metadata.is_dir() {
-            scan_directory(&entry_path)
+            scan_directory(&entry_path, config)
         } else {
             let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
             FsEntry::new_file(entry_path, modified)
@@ -269,7 +268,8 @@ mod tests {
         fs::create_dir_all(&repo_path).unwrap();
         fs::create_dir(repo_path.join(".git")).unwrap();
 
-        let entry = scan_directory(&repo_path);
+        let config = Config::new();
+        let entry = scan_directory(&repo_path, &config);
         match entry.kind {
             EntryKind::Superfolder { is_atomic } => assert!(is_atomic),
             _ => panic!("Expected atomic superfolder for .git containing dir"),
@@ -287,7 +287,8 @@ mod tests {
         File::create(old_stuff.join(".superfolder")).unwrap();
         File::create(old_stuff.join("some_file.txt")).unwrap();
 
-        let entry = scan_directory(&old_stuff);
+        let config = Config::new();
+        let entry = scan_directory(&old_stuff, &config);
         match entry.kind {
             EntryKind::Superfolder { is_atomic } => assert!(!is_atomic), // User superfolder
             _ => panic!("Expected user superfolder"),
@@ -316,7 +317,8 @@ mod tests {
         fs::create_dir(&my_repo).unwrap();
         fs::create_dir(my_repo.join(".git")).unwrap();
 
-        let entry = scan_directory(root);
+        let config = Config::new();
+        let entry = scan_directory(root, &config);
 
         // Root is directory
         assert!(matches!(entry.kind, EntryKind::Directory));
