@@ -155,15 +155,21 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
                     }
                 }
                 KeyCode::Char('h') | KeyCode::Char('?') => app.toggle_help(),
-                code if app.show_help => {
-                    match code {
-                        KeyCode::Down => app.scroll_help_down(),
-                        KeyCode::Up => app.scroll_help_up(),
-                        _ => {}
-                    }
-                }
+                code if app.show_help => match code {
+                    KeyCode::Down => app.scroll_help_down(),
+                    KeyCode::Up => app.scroll_help_up(),
+                    KeyCode::PageDown => app.scroll_help_page_down(),
+                    KeyCode::PageUp => app.scroll_help_page_up(),
+                    KeyCode::Home => app.scroll_help_home(),
+                    KeyCode::End => app.scroll_help_end(),
+                    _ => {}
+                },
                 KeyCode::Down => app.next(),
                 KeyCode::Up => app.previous(),
+                KeyCode::PageDown => app.table_page_down(),
+                KeyCode::PageUp => app.table_page_up(),
+                KeyCode::Home => app.table_home(),
+                KeyCode::End => app.table_end(),
                 KeyCode::Left => app.collapse_current()?,
                 KeyCode::Right => app.expand_current()?,
                 KeyCode::Char('e') | KeyCode::Char('E') => app.export_to_csv()?,

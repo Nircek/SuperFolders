@@ -218,6 +218,10 @@ pub fn scan_directory_with_progress(
         };
 
         stats.merge(&child.stats);
+        // If it's a directory (and not skipped), it counts as 1 item itself
+        if matches!(child.kind, EntryKind::Directory) {
+            stats.count += 1;
+        }
         children.push(child);
     }
 
@@ -268,6 +272,7 @@ fn scan_recursive_for_stats(
             // Recurse
             let (child_stats, _) = scan_recursive_for_stats(&path, counter.clone());
             stats.merge(&child_stats);
+            stats.count += 1; // Count directory itself
         } else {
             if let Some(ref c) = counter {
                 c.fetch_add(1, Ordering::Relaxed);

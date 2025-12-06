@@ -4,14 +4,22 @@ SuperFolders is a terminal-based application designed to bring order to chaotic 
 
 ## Key Concepts
 
-### Superfolders
-A **Superfolder** is a folder that "swallows" its content in the view. It aggregates statistics (file count, modification dates) of everything inside it, presenting a clean "Frontier" of your file tree.
+### Terminology
+- **Item**: A file or a directory.
+- **Entry**: A row in the table view (can be a File, an Empty Folder, or a Superfolder).
+- **Count**: The number of items contained within an entry.
+  - Files and Folders have a count of **1**.
+  - Superfolders show the **total recursive count** of all files and folders inside them.
 
-There are two types of Superfolders:
-1.  **Atomic Superfolders (System Wrapper)**: Automatically detected folders that contain **System Folders** (e.g. `.git`, `node_modules`, `.venv`).
-    -   *System Folder*: The technical folder identifying the project type (e.g. `.git`).
-    -   *Atomic Superfolder*: The parent folder containing the System Folder. This parent is treated as an atomic unit because it represents a complete project/repo.
-2.  **User Superfolders**: Any folder you choose to collapse manually.
+### Superfolders
+A **Superfolder** is a folder that "swallows" its content in the view. It aggregates statistics (file count, modification dates) of everything inside it.
+- **Atomic Superfolders**: Automatically detected project folders (parent of system folder).
+- **User Superfolders**: Manually collapsed folders (parent of `.superfolder`).
+
+### The "Tree Frontier"
+The view shows a flat list of entries representing the current "Frontier".
+- Files do not have a trailing slash (e.g., `file.txt`).
+- Folders always have a trailing slash (e.g., `folder/`).
 
 ### The "Tree Frontier"
 Instead of a traditional indented tree view, Superfolder TUI shows a flat list representing the current "Frontier" of your file system. This is the highest level of detail you have chosen to see. Deeper details are hidden behind Superfolders.
