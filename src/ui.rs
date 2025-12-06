@@ -101,8 +101,9 @@ CONTROLS:
   Q or Esc   Quit the application
 
 SYSTEM FOLDERS (Atomic Superfolder Detection):
-  .git, node_modules, .venv, venv, __pycache__, target, 
-  build, dist, .idea, .vscode
+  Default system folders include: .git, node_modules, .venv, venv, 
+  __pycache__, target, build, dist, .idea, .vscode
+  (Configurable via Config struct in src/config.rs)
 
 Press H, ? or Esc to close this help.
 "#;

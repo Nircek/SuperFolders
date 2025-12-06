@@ -174,7 +174,8 @@ pub fn scan_directory_with_progress(
     // Check for .superfolder marker
     let is_user_superfolder = path.join(".superfolder").exists();
 
-    // Check for Atomic folders using config
+    // Check if this directory contains any system folders (e.g., .git, node_modules)
+    // making it an Atomic Superfolder
     let is_atomic = config.contains_system_folder(path);
 
     if is_user_superfolder || is_atomic {

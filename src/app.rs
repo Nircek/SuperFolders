@@ -317,7 +317,10 @@ mod tests {
     #[test]
     fn test_csv_escaping() {
         assert_eq!(escape_csv("normal text"), "normal text");
-        assert_eq!(escape_csv("text with \"quotes\""), "text with \"\"quotes\"\"");
+        assert_eq!(
+            escape_csv("text with \"quotes\""),
+            "text with \"\"quotes\"\""
+        );
         assert_eq!(escape_csv("\"quoted\""), "\"\"quoted\"\"");
         assert_eq!(escape_csv(""), "");
     }
