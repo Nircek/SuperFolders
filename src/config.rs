@@ -84,6 +84,7 @@ impl Config {
     }
 
     /// Save the current configuration to a file
+    #[allow(dead_code)]
     pub fn save(&self, path: &Path) -> std::io::Result<()> {
         let content = toml::to_string_pretty(self)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;

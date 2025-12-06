@@ -25,6 +25,8 @@ pub struct App {
     pub show_help: bool,
     /// Status bar message with timestamp
     pub status_message: Option<(String, std::time::Instant)>,
+    /// Current vertical scroll position of the help overlay
+    pub help_scroll: u16,
 }
 
 /// A single item in the flattened view list
@@ -50,11 +52,6 @@ pub struct ViewItem {
 }
 
 impl App {
-    /// Initialize the application with the given root path
-    pub fn new(root_path: PathBuf) -> Self {
-        Self::new_with_progress(root_path, None)
-    }
-
     /// Initialize the application with optional progress tracking
     pub fn new_with_progress(root_path: PathBuf, counter: Option<Arc<AtomicUsize>>) -> Self {
         let config = Config::new();
@@ -68,6 +65,7 @@ impl App {
             config,
             show_help: false,
             status_message: None,
+            help_scroll: 0,
         };
         app.update_view();
         app
@@ -283,6 +281,20 @@ impl App {
     /// Toggle help overlay
     pub fn toggle_help(&mut self) {
         self.show_help = !self.show_help;
+        // Reset scroll when opening help
+        if self.show_help {
+            self.help_scroll = 0;
+        }
+    }
+
+    /// Scroll help text down
+    pub fn scroll_help_down(&mut self) {
+        self.help_scroll = self.help_scroll.saturating_add(1);
+    }
+
+    /// Scroll help text up
+    pub fn scroll_help_up(&mut self) {
+        self.help_scroll = self.help_scroll.saturating_sub(1);
     }
 
     /// Set a status message that will be shown for a few seconds

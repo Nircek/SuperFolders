@@ -147,12 +147,19 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
             && let Event::Key(key) = event::read()?
         {
             match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Esc => {
+                KeyCode::Char('q') | KeyCode::Esc => {
                     if app.show_help {
                         app.toggle_help();
                     } else {
                         return Ok(());
+                    }
+                }
+                KeyCode::Char('h') | KeyCode::Char('?') => app.toggle_help(),
+                code if app.show_help => {
+                    match code {
+                        KeyCode::Down => app.scroll_help_down(),
+                        KeyCode::Up => app.scroll_help_up(),
+                        _ => {}
                     }
                 }
                 KeyCode::Down => app.next(),
@@ -160,7 +167,6 @@ fn run_app(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>, app: &mut App)
                 KeyCode::Left => app.collapse_current()?,
                 KeyCode::Right => app.expand_current()?,
                 KeyCode::Char('e') | KeyCode::Char('E') => app.export_to_csv()?,
-                KeyCode::Char('h') | KeyCode::Char('H') | KeyCode::Char('?') => app.toggle_help(),
                 _ => {}
             }
         }

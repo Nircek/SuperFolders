@@ -132,9 +132,8 @@ Press H, ? or Esc to close this help."#,
                 .title(" Help ")
                 .title_alignment(Alignment::Center),
         )
-        .style(Style::default().bg(Color::Black).fg(Color::White))
         .wrap(Wrap { trim: true })
-        .scroll((0, 0));
+        .scroll((app.help_scroll, 0));
 
     f.render_widget(Clear, area);
     f.render_widget(paragraph, area);
