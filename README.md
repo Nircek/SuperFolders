@@ -23,7 +23,18 @@ Instead of a traditional indented tree view, Superfolder TUI shows a flat list r
 | **Up / Down** | Navigation | Move selection up or down. |
 | **Left Arrow** | **Collapse** | Collapses the **parent** of the current selection into a User Superfolder. |
 | **Right Arrow** | **Expand** | Expands the selected User Superfolder, revealing its contents. (Does not work on Atomic Superfolders). |
+| **E** | **Export** | Exports the current view to a CSV file with timestamp. |
+| **H / ?** | **Help** | Shows/hides the in-app help overlay with controls and terminology. |
 | **Q / Esc** | Quit | Exits the application. |
+
+## Features
+
+- **Visual Indicators**: Superfolders are marked with 📦 icon and [SF] tag for easy identification
+- **Persistent Scroll State**: Table state is maintained properly in the App struct for smooth navigation
+- **CSV Export**: Export current view to timestamped CSV files (press 'E')
+- **In-App Help**: Press 'H' or '?' to see controls and terminology
+- **Progress Indicator**: Shows real-time progress during initial directory scan
+- **Configurable System Folders**: System folder detection is configurable and extensible
 
 ## Installation & Usage
 
@@ -37,3 +48,75 @@ Instead of a traditional indented tree view, Superfolder TUI shows a flat list r
     ./target/release/SuperFolders <path-to-directory>
     ```
     If no path is provided, it defaults to the current directory.
+    
+3.  **Export Data**:
+    ```bash
+    # While running, press 'E' to export the current view
+    # Creates: superfolders_export_YYYYMMDD_HHMMSS.csv
+    ```
+
+## Hackability & Customization
+
+SuperFolders is designed to be easily hackable and customizable:
+
+### Configuration System
+
+The system folder detection is fully configurable through the `Config` struct in `src/config.rs`. Default system folders include:
+- `.git` (Git repositories)
+- `node_modules` (Node.js)
+- `.venv`, `venv`, `__pycache__` (Python)
+- `target` (Rust)
+- `build`, `dist` (Build artifacts)
+- `.idea`, `.vscode` (IDEs)
+
+**To add custom system folders:**
+
+```rust
+// In src/config.rs or when creating Config
+let mut config = Config::new();
+config.add_system_folder("my_custom_folder".to_string());
+```
+
+### Progress Tracking
+
+The scanner supports optional progress tracking via `AtomicUsize` counters:
+
+```rust
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
+
+let counter = Arc::new(AtomicUsize::new(0));
+let root = scan_directory_with_progress(&path, &config, Some(counter.clone()));
+```
+
+### CSV Export Format
+
+The CSV export follows a simple format:
+```csv
+Min Date,Max Date,Count,Path
+"2024-01-01","2024-01-15","42","path/to/folder"
+```
+
+### Modular Architecture
+
+The codebase is organized into clear modules:
+- `src/main.rs` - Entry point and terminal setup
+- `src/app.rs` - Application state and logic
+- `src/scanner.rs` - File system scanning with progress tracking
+- `src/ui.rs` - TUI rendering with ratatui
+- `src/config.rs` - Configuration management
+
+### Extending the UI
+
+The UI uses `ratatui` and can be easily customized:
+- Modify colors in `src/ui.rs`
+- Add new views or overlays (see `draw_help_overlay` as example)
+- Customize table columns and formatting
+
+### Adding New Commands
+
+To add new keyboard shortcuts:
+1. Add key handling in `src/main.rs` in the `run_app` function
+2. Implement corresponding method in `src/app.rs`
+3. Update help overlay in `src/ui.rs` (optional)
+4. Update README Controls section

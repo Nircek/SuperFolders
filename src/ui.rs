@@ -5,8 +5,8 @@ use ratatui::{
     style::{Color, Modifier, Style, Stylize},
     widgets::{Block, Borders, Clear, Paragraph, Row, Table, Wrap},
 };
-/// Renders the TUI interface
 
+/// Renders the TUI interface
 pub fn draw(f: &mut Frame, app: &mut App) {
     if app.show_help {
         draw_help_overlay(f);

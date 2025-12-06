@@ -2,6 +2,8 @@ use crate::config::Config;
 use chrono::{DateTime, Local};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::SystemTime;
 
 /// Type of a file system entry
@@ -133,6 +135,19 @@ impl FsEntry {
 ///
 /// Respects `.superfolder` markers and atomic folders configured in Config.
 pub fn scan_directory(path: &Path, config: &Config) -> FsEntry {
+    scan_directory_with_progress(path, config, None)
+}
+
+/// Scans a directory with optional progress tracking
+pub fn scan_directory_with_progress(
+    path: &Path,
+    config: &Config,
+    counter: Option<Arc<AtomicUsize>>,
+) -> FsEntry {
+    if let Some(ref c) = counter {
+        c.fetch_add(1, Ordering::Relaxed);
+    }
+
     let name = path
         .file_name()
         .unwrap_or_default()
@@ -163,7 +178,7 @@ pub fn scan_directory(path: &Path, config: &Config) -> FsEntry {
     let is_atomic = config.contains_system_folder(path);
 
     if is_user_superfolder || is_atomic {
-        let (deep_stats, _deep_children) = scan_recursive_for_stats(path);
+        let (deep_stats, _deep_children) = scan_recursive_for_stats(path, counter.clone());
 
         return FsEntry {
             path: path.to_path_buf(),
@@ -192,8 +207,11 @@ pub fn scan_directory(path: &Path, config: &Config) -> FsEntry {
         }
 
         let child = if metadata.is_dir() {
-            scan_directory(&entry_path, config)
+            scan_directory_with_progress(&entry_path, config, counter.clone())
         } else {
+            if let Some(ref c) = counter {
+                c.fetch_add(1, Ordering::Relaxed);
+            }
             let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
             FsEntry::new_file(entry_path, modified)
         };
@@ -216,7 +234,14 @@ pub fn scan_directory(path: &Path, config: &Config) -> FsEntry {
 }
 
 /// Helper scan that only computes stats, used for atomic/superfolders where children are not needed in memory yet.
-fn scan_recursive_for_stats(path: &Path) -> (FsStats, Vec<FsEntry>) {
+fn scan_recursive_for_stats(
+    path: &Path,
+    counter: Option<Arc<AtomicUsize>>,
+) -> (FsStats, Vec<FsEntry>) {
+    if let Some(ref c) = counter {
+        c.fetch_add(1, Ordering::Relaxed);
+    }
+
     let mut stats = FsStats::new();
     let read_dir = match fs::read_dir(path) {
         Ok(rd) => rd,
@@ -240,9 +265,12 @@ fn scan_recursive_for_stats(path: &Path) -> (FsStats, Vec<FsEntry>) {
 
         if metadata.is_dir() {
             // Recurse
-            let (child_stats, _) = scan_recursive_for_stats(&path);
+            let (child_stats, _) = scan_recursive_for_stats(&path, counter.clone());
             stats.merge(&child_stats);
         } else {
+            if let Some(ref c) = counter {
+                c.fetch_add(1, Ordering::Relaxed);
+            }
             let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
             let mut file_stats = FsStats::new();
             file_stats.add_file(modified);

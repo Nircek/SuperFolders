@@ -1,9 +1,11 @@
 use crate::config::Config;
-use crate::scanner::{EntryKind, FsEntry, scan_directory};
+use crate::scanner::{EntryKind, FsEntry, scan_directory, scan_directory_with_progress};
 use ratatui::widgets::TableState;
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
 
 /// Application state and logic
 pub struct App {
@@ -46,8 +48,13 @@ pub struct ViewItem {
 impl App {
     /// Initialize the application with the given root path
     pub fn new(root_path: PathBuf) -> Self {
+        Self::new_with_progress(root_path, None)
+    }
+
+    /// Initialize the application with optional progress tracking
+    pub fn new_with_progress(root_path: PathBuf, counter: Option<Arc<AtomicUsize>>) -> Self {
         let config = Config::new();
-        let root = scan_directory(&root_path, &config);
+        let root = scan_directory_with_progress(&root_path, &config, counter);
         let mut app = Self {
             root_path: root_path.clone(),
             root,
@@ -71,7 +78,7 @@ impl App {
     }
 
     /// Flattens the tree into a list based on current expansion state
-    fn flatten_tree<'a>(entry: &'a FsEntry, root: &PathBuf, list: &mut Vec<ViewItem>) {
+    fn flatten_tree(entry: &FsEntry, root: &PathBuf, list: &mut Vec<ViewItem>) {
         match entry.kind {
             EntryKind::Directory => {
                 if entry.children.is_empty() {
@@ -294,6 +301,3 @@ impl App {
         Ok(())
     }
 }
-
-// Import chrono for timestamp in export
-use chrono;
