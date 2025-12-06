@@ -289,15 +289,36 @@ impl App {
         // Write header
         writeln!(file, "Min Date,Max Date,Count,Path")?;
 
-        // Write data rows
+        // Write data rows with proper CSV escaping
         for item in &self.view_items {
             writeln!(
                 file,
                 "\"{}\",\"{}\",\"{}\",\"{}\"",
-                item.min_date, item.max_date, item.count_str, item.path
+                escape_csv(&item.min_date),
+                escape_csv(&item.max_date),
+                escape_csv(&item.count_str),
+                escape_csv(&item.path)
             )?;
         }
 
         Ok(())
+    }
+}
+
+/// Escape a string for CSV by doubling internal quotes
+fn escape_csv(s: &str) -> String {
+    s.replace('"', "\"\"")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_csv_escaping() {
+        assert_eq!(escape_csv("normal text"), "normal text");
+        assert_eq!(escape_csv("text with \"quotes\""), "text with \"\"quotes\"\"");
+        assert_eq!(escape_csv("\"quoted\""), "\"\"quoted\"\"");
+        assert_eq!(escape_csv(""), "");
     }
 }
