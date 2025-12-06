@@ -1,0 +1,32 @@
+# SuperFolders Configuration File Example
+# 
+# Place this file as:
+#   - superfolders.toml (next to the binary)
+#   - ~/.superfolders.toml (in your home directory)
+#
+# Or set the SUPERFOLDERS_SYSTEM_FOLDERS environment variable:
+#   export SUPERFOLDERS_SYSTEM_FOLDERS=".git,node_modules,target"
+
+# List of folder names that identify atomic superfolders
+# These folders are automatically detected and their parent becomes an atomic superfolder
+system_folders = [
+    ".git",           # Git repositories
+    "node_modules",   # Node.js dependencies
+    ".venv",          # Python virtual environments
+    "venv",           # Python virtual environments (alternative name)
+    "__pycache__",    # Python bytecode cache
+    "target",         # Rust build directory
+    "build",          # Common build directory
+    "dist",           # Distribution directory
+    ".idea",          # IntelliJ IDEA project
+    ".vscode",        # Visual Studio Code workspace
+]
+
+# You can add custom folders:
+# system_folders = [
+#     ".git",
+#     "node_modules",
+#     "vendor",        # PHP Composer dependencies
+#     ".gradle",       # Gradle build system
+#     ".terraform",    # Terraform state
+# ]

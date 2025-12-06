@@ -61,7 +61,28 @@ SuperFolders is designed to be easily hackable and customizable:
 
 ### Configuration System
 
-The system folder detection is fully configurable through the `Config` struct in `src/config.rs`. Default system folders include:
+The system folder detection is fully configurable. SuperFolders loads configuration in this priority order:
+
+1. **Environment Variable** (highest priority)
+   ```bash
+   export SUPERFOLDERS_SYSTEM_FOLDERS=".git,node_modules,target,vendor"
+   ```
+
+2. **Config File next to binary**
+   ```bash
+   # Create superfolders.toml next to the executable
+   system_folders = [".git", "node_modules", "target"]
+   ```
+
+3. **Config File in home directory**
+   ```bash
+   # Create ~/.superfolders.toml
+   system_folders = [".git", "node_modules", "target"]
+   ```
+
+4. **Built-in defaults** (lowest priority)
+
+Default system folders include:
 - `.git` (Git repositories)
 - `node_modules` (Node.js)
 - `.venv`, `venv`, `__pycache__` (Python)
@@ -69,13 +90,7 @@ The system folder detection is fully configurable through the `Config` struct in
 - `build`, `dist` (Build artifacts)
 - `.idea`, `.vscode` (IDEs)
 
-**To add custom system folders:**
-
-```rust
-// In src/config.rs or when creating Config
-let mut config = Config::new();
-config.add_system_folder("my_custom_folder".to_string());
-```
+See `superfolders.toml.example` for a complete configuration file example.
 
 ### Progress Tracking
 
